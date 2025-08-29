@@ -1,0 +1,10 @@
+{
+  "feature_names": [
+    "Engine Temperature (\u00b0C)",
+    "Brake Pad Thickness (mm)",
+    "Tire Pressure (PSI)",
+    "Anomaly Indication"
+  ],
+  "is_trained": true,
+  "num_features": 4
+}

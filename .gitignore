@@ -1,0 +1,5 @@
+env/
+.DS_Store
+.streamlit/secrets.toml
+vehicle_maintenance_model.pkl
+Datasets/*.csv
