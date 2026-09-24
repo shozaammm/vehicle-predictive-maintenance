@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-import textwrap
 import math
 from datetime import datetime
 
@@ -19,7 +18,21 @@ st.set_page_config(
 
 # Helper function to render HTML cleanly without any markdown indentation issues
 def render_html(html_str: str):
-    st.markdown(textwrap.dedent(html_str).strip(), unsafe_allow_html=True)
+    """
+    Renders pure HTML without any markdown parser interference.
+    Strips comments and joins lines so no leading whitespace or newlines can trigger
+    indented code block parsing in Streamlit.
+    """
+    lines = [
+        line.strip()
+        for line in html_str.splitlines()
+        if line.strip() and not line.strip().startswith("<!--")
+    ]
+    clean = "".join(lines)
+    if hasattr(st, "html"):
+        st.html(clean)
+    else:
+        st.markdown(clean, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
@@ -808,15 +821,7 @@ with c_left:
         seg3 = "fill-green" if score > 60 else ""
         seg4 = "fill-amber" if score > 80 else ""
         seg5 = "fill-green" if score > 90 else ""
-        return f"""
-        <div class="bar-track">
-            <div class="bar-segment {seg1}"></div>
-            <div class="bar-segment {seg2}"></div>
-            <div class="bar-segment {seg3}"></div>
-            <div class="bar-segment {seg4}"></div>
-            <div class="bar-segment {seg5}"></div>
-        </div>
-        """
+        return f'<div class="bar-track"><div class="bar-segment {seg1}"></div><div class="bar-segment {seg2}"></div><div class="bar-segment {seg3}"></div><div class="bar-segment {seg4}"></div><div class="bar-segment {seg5}"></div></div>'
 
     def tag_str(val):
         if val > 75:
@@ -826,48 +831,50 @@ with c_left:
         else:
             return '<span style="color:var(--neon-red); font-weight:600;">CRITICAL</span>'
 
+    p_bars = make_led_bars(powertrain_health)
+    c_bars = make_led_bars(cooling_health)
+    f_bars = make_led_bars(fuel_health)
+    w_bars = make_led_bars(chassis_health)
+
     render_html(f"""
     <div class="bezel-card">
         <div class="bezel-header">
             <span class="bezel-title">AIRFRAME SYSTEM STATUS</span>
             <span class="bezel-badge badge-nominal">{powertrain_health}% NOMINAL</span>
         </div>
-        
-        <div style="margin: 12px 0;">
+        <div style="margin: 10px 0;">
             <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:11px;">
                 <span style="color:var(--text-dim);">POWERTRAIN INTEGRITY</span>
                 <span>{tag_str(powertrain_health)}</span>
             </div>
-            {make_led_bars(powertrain_health)}
+            {p_bars}
         </div>
-
-        <div style="margin: 12px 0;">
+        <div style="margin: 10px 0;">
             <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:11px;">
                 <span style="color:var(--text-dim);">COOLING LOOP STATUS</span>
                 <span>{tag_str(cooling_health)}</span>
             </div>
-            {make_led_bars(cooling_health)}
+            {c_bars}
         </div>
-
-        <div style="margin: 12px 0;">
+        <div style="margin: 10px 0;">
             <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:11px;">
                 <span style="color:var(--text-dim);">FUEL INJECTION RAIL</span>
                 <span>{tag_str(fuel_health)}</span>
             </div>
-            {make_led_bars(fuel_health)}
+            {f_bars}
         </div>
-
-        <div style="margin: 12px 0;">
+        <div style="margin: 10px 0;">
             <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:11px;">
                 <span style="color:var(--text-dim);">CHASSIS ACCUMULATION</span>
                 <span>{tag_str(chassis_health)}</span>
             </div>
-            {make_led_bars(chassis_health)}
+            {w_bars}
         </div>
     </div>
     """)
 
     # Live Telemetry Rows with Sparklines (matching reference image)
+    egt_color = '#FF3B30' if coolant_temp > 115 else ('#FF9E00' if coolant_temp > 100 else '#00F59B')
     render_html(f"""
     <div class="bezel-card">
         <div class="bezel-header">
@@ -880,7 +887,7 @@ with c_left:
         </div>
         <div class="telemetry-row">
             <span class="telemetry-param-title">COOLANT TEMP (EGT)</span>
-            <span class="telemetry-param-val" style="color:{'#FF3B30' if coolant_temp>115 else ('#FF9E00' if coolant_temp>100 else '#00F59B')};">{coolant_temp} <span style="font-size:10px; color:var(--text-muted);">°C</span></span>
+            <span class="telemetry-param-val" style="color:{egt_color};">{coolant_temp} <span style="font-size:10px; color:var(--text-muted);">°C</span></span>
         </div>
         <div class="telemetry-row">
             <span class="telemetry-param-title">ENGINE LOAD</span>
@@ -918,9 +925,7 @@ with c_center:
                 <span class="nav-tab-item" style="font-size:10px; padding:3px 10px;">RADAR</span>
             </div>
         </div>
-
-        <!-- Sleek Aerospace Isometric Vehicle Wireframe matching the reference video -->
-        <div style="position:relative; width:100%; height:260px; overflow:hidden;">
+        <div style="position:relative; width:100%; height:250px; overflow:hidden;">
             <svg viewBox="0 0 680 320" style="width:100%; height:100%; filter:drop-shadow(0 0 16px rgba(0, 229, 255, 0.12));">
                 <defs>
                     <radialGradient id="radarSweep" cx="50%" cy="50%" r="50%">
@@ -933,68 +938,41 @@ with c_center:
                         <stop offset="100%" stop-color="{c_eng}" stop-opacity="0" />
                     </radialGradient>
                 </defs>
-
-                <!-- Ground Radar Scan Ellipses (Waypoint WP2 Reticle) -->
                 <ellipse cx="340" cy="230" rx="240" ry="68" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" stroke-dasharray="4,6" />
                 <ellipse cx="340" cy="230" rx="160" ry="46" fill="url(#radarSweep)" stroke="rgba(0, 245, 155, 0.2)" stroke-width="1.5" />
                 <ellipse cx="340" cy="230" rx="80" ry="24" fill="none" stroke="rgba(255, 158, 0, 0.4)" stroke-width="1.5" stroke-dasharray="2,3" />
-
-                <!-- Reticle Crosshairs & Waypoint Markers -->
                 <circle cx="340" cy="230" r="14" fill="rgba(255, 158, 0, 0.2)" stroke="#FF9E00" stroke-width="1.5" />
                 <text x="340" y="234" fill="#FF9E00" font-family="JetBrains Mono" font-size="9" font-weight="700" text-anchor="middle">WP2</text>
-
-                <!-- Aerial Platform Isometric Wireframe (Inspired by Reaper / Aerospace Fixed-Wing Drone in Video) -->
-                <!-- Main Fuselage -->
                 <polygon points="340,60 365,130 355,200 325,200 315,130" fill="rgba(16, 23, 34, 0.9)" stroke="rgba(0, 229, 255, 0.4)" stroke-width="1.5" />
                 <line x1="340" y1="60" x2="340" y2="200" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1" stroke-dasharray="2,3" />
-
-                <!-- Left Swept Wing -->
                 <polygon points="325,130 110,105 105,120 320,150" fill="rgba(18, 26, 38, 0.75)" stroke="rgba(0, 229, 255, 0.35)" stroke-width="1.2" />
                 <line x1="210" y1="118" x2="205" y2="135" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1" />
-
-                <!-- Right Swept Wing -->
                 <polygon points="355,130 570,105 575,120 360,150" fill="rgba(18, 26, 38, 0.75)" stroke="rgba(0, 229, 255, 0.35)" stroke-width="1.2" />
                 <line x1="470" y1="118" x2="475" y2="135" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1" />
-
-                <!-- V-Tail / Stabilizers -->
                 <polygon points="330,195 285,225 295,232 335,202" fill="rgba(14, 20, 30, 0.8)" stroke="rgba(0, 229, 255, 0.3)" stroke-width="1" />
                 <polygon points="350,195 395,225 385,232 345,202" fill="rgba(14, 20, 30, 0.8)" stroke="rgba(0, 229, 255, 0.3)" stroke-width="1" />
-
-                <!-- Pusher Propeller Disc -->
                 <ellipse cx="340" cy="208" rx="26" ry="6" fill="none" stroke="rgba(0, 245, 155, 0.4)" stroke-width="1" stroke-dasharray="3,3" />
-
-                <!-- Glowing Internal Core Engine Chamber (like the illuminated green battery in the video!) -->
                 <rect x="328" y="125" width="24" height="42" rx="4" fill="url(#coreGlow)" stroke="{c_eng}" stroke-width="1.5" />
                 <line x1="332" y1="135" x2="348" y2="135" stroke="#FFFFFF" stroke-width="1" />
                 <line x1="332" y1="145" x2="348" y2="145" stroke="#FFFFFF" stroke-width="1" />
                 <line x1="332" y1="155" x2="348" y2="155" stroke="#FFFFFF" stroke-width="1" />
-
-                <!-- Live Sensor Callout Nodes & HUD Badges -->
-                <!-- Nose Pitot / Coolant Thermal Node -->
                 <circle cx="340" cy="60" r="5" fill="{c_rad}" stroke="#FFFFFF" stroke-width="1" />
                 <line x1="340" y1="60" x2="385" y2="42" stroke="{c_rad}" stroke-width="1" stroke-dasharray="2,2" />
                 <rect x="385" y="32" width="120" height="20" rx="3" fill="rgba(11, 16, 24, 0.85)" stroke="{c_rad}" stroke-width="1" />
                 <text x="392" y="46" fill="{c_rad}" font-family="JetBrains Mono" font-size="9" font-weight="600">EGT HEAD: {coolant_temp}°C</text>
-
-                <!-- Wing Tip Comms / Telemetry Node -->
                 <circle cx="108" cy="112" r="4" fill="var(--neon-green)" />
                 <circle cx="572" cy="112" r="4" fill="var(--neon-green)" />
-
-                <!-- Powertrain Core Callout -->
                 <circle cx="340" cy="146" r="6" fill="{c_eng}">
                     <animate attributeName="r" values="5;7;5" dur="1.4s" repeatCount="indefinite"/>
                 </circle>
                 <line x1="352" y1="146" x2="430" y2="175" stroke="{c_eng}" stroke-width="1" stroke-dasharray="2,2" />
                 <rect x="430" y="165" width="125" height="20" rx="3" fill="rgba(11, 16, 24, 0.85)" stroke="{c_eng}" stroke-width="1" />
                 <text x="438" y="179" fill="{c_eng}" font-family="JetBrains Mono" font-size="9" font-weight="600">ENGINE: {engine_rpm:,} RPM</text>
-
-                <!-- Fuel Common Rail Node -->
                 <line x1="328" y1="146" x2="230" y2="175" stroke="{c_fuel}" stroke-width="1" stroke-dasharray="2,2" />
                 <rect x="135" y="165" width="105" height="20" rx="3" fill="rgba(11, 16, 24, 0.85)" stroke="{c_fuel}" stroke-width="1" />
                 <text x="142" y="179" fill="{c_fuel}" font-family="JetBrains Mono" font-size="9" font-weight="600">RAIL: {fuel_pressure} PSI</text>
             </svg>
         </div>
-
         <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--text-muted); display:flex; justify-content:space-around; margin-top:4px;">
             <span>ACTIVE SENSORS: 8 CHANNELS</span>
             <span>BEARING: 16° AZIMUTH</span>
@@ -1122,11 +1100,7 @@ icon_char = "🚨" if risk_level == "URGENT" else ("⚠️" if risk_level == "HI
 fault_html = ""
 if subsystem_issues:
     fault_items = " &bull; ".join(subsystem_issues)
-    fault_html = f"""
-    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.1); font-family:'JetBrains Mono'; font-size:11px; color:{accent_hex};">
-        <strong>ACTIONABLE DIAGNOSTIC CODES:</strong> {fault_items}
-    </div>
-    """
+    fault_html = f'<div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.1); font-family:\'JetBrains Mono\'; font-size:11px; color:{accent_hex};"><strong>ACTIONABLE DIAGNOSTIC CODES:</strong> {fault_items}</div>'
 
 render_html(f"""
 <div class="advisory-box {advisory_class}">
@@ -1267,16 +1241,7 @@ for p_name, p_val, p_opt, p_unit, p_desc in matrix_data:
     badge_style = "badge-nominal" if s_color == "green" else ("badge-warn" if s_color == "amber" else "badge-alert")
     val_repr = f"{p_val:,}" if isinstance(p_val, int) else f"{p_val}"
 
-    rows_html += f"""
-    <tr>
-        <td style="font-weight:600; color:#FFFFFF;">{p_name}</td>
-        <td style="color:{hex_color}; font-weight:700;">{val_repr}</td>
-        <td style="color:var(--text-dim);">{p_opt}</td>
-        <td style="color:var(--text-muted);">{p_unit}</td>
-        <td style="color:var(--text-dim);">{p_desc}</td>
-        <td><span class="bezel-badge {badge_style}">{s_tag}</span></td>
-    </tr>
-    """
+    rows_html += f'<tr><td style="font-weight:600; color:#FFFFFF;">{p_name}</td><td style="color:{hex_color}; font-weight:700;">{val_repr}</td><td style="color:var(--text-dim);">{p_opt}</td><td style="color:var(--text-muted);">{p_unit}</td><td style="color:var(--text-dim);">{p_desc}</td><td><span class="bezel-badge {badge_style}">{s_tag}</span></td></tr>'
 
 render_html(f"""
 <div class="bezel-card">
@@ -1300,7 +1265,6 @@ render_html(f"""
         </tbody>
     </table>
 </div>
-
 <div style="text-align:center; margin-top:28px; margin-bottom:12px; font-family:'JetBrains Mono'; font-size:11px; color:var(--text-muted);">
     AERION DEFENSE &bull; VEHICLE PREDICTIVE TELEMETRY ENGINE &bull; VERSION 3.4.0 &bull; SECURE REALTIME DEPLOYMENT
 </div>
