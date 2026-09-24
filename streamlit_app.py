@@ -1031,8 +1031,8 @@ with c_center:
 with c_right:
     # Telemetry Bandwidth Trace Chart (matching reference video top-right)
     time_bins = [f"{i*5}s" for i in range(12)]
-    np.random.seed(int(abs(engine_rpm + speed) % 5000))
-    base_bw = 2.4 + (speed / 350.0) * 1.0
+    np.random.seed(int(abs(engine_rpm + vehicle_speed) % 5000))
+    base_bw = 2.4 + (vehicle_speed / 350.0) * 1.0
     bw_series = [round(base_bw + np.random.uniform(-0.15, 0.15), 2) for _ in range(12)]
 
     fig_bw = go.Figure()
